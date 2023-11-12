@@ -21,49 +21,54 @@ hi! thanks for working with me!! <3
     - printmem operation
     - quit
 
+  11/12/2023 - Kevin
+  - I modified the find_free_block and my_malloc functions to use the best fit algorithm
+  - I created the blocklist function
+  - The alloc seems to work now (malloc 2 outputs 18) and blocklist seems functional as well
+  - There seems to be a bug with my_realloc
+    - When you malloc (malloc 10) then you realloc it (realloc 1 20), and then run blocklist, there's an infinite loop
+  - The my_free function needs to coalesce with the next block, if the next block is free ("Requirements about allocation and freeing of memory" in the assignment 4 doc)
 */
 
 // memory heap w/ header for initial free block
-uint8_t heap[HEAP_SIZE + 1] = {HEAP_SIZE << 1};
+uint8_t heap[HEAP_SIZE] = {HEAP_SIZE << 1};
 
+// Find best fit free block
 int find_free_block(int size) {
     int current_addr = 0;
-    while (current_addr <= HEAP_SIZE) {
+    int best_fit_addr = -1;
+    int best_fit_size = HEAP_SIZE + 1;
+    while (current_addr < HEAP_SIZE) {
         uint8_t header = heap[current_addr];
-        int block_size = (header >> 1) << 1;
-        if ((header & 1) == FREE_BLOCK && block_size >= size) {
-            return current_addr;
+        int block_size = (header >> 1);
+        if ((header & 1) == FREE_BLOCK && block_size >= size + 1) {
+            // if there is a free block, check if it fits better
+            if (block_size < best_fit_size) {
+                best_fit_size = block_size;
+                best_fit_addr = current_addr;
+            }
         }
-        current_addr += block_size + 1;
+        current_addr += block_size;
     }
-    return -1;
+    return best_fit_addr; // no free block found
 }
-//this function returns malloc 10, malloc 5 output correctly but not malloc 2 (19 instead of 18)
 int my_malloc(int size) {
-    if (size <= 0 || size > HEAP_SIZE) {
+    if (size <= 0 || size > HEAP_SIZE - 1) {
         return -1; // Invalid size
     }
-    // make sure size is even
-    if (size % 2 != 0) {
-        size++;
-    }
-    int current_addr = 0;
-    while (current_addr <= HEAP_SIZE) {
-        uint8_t header = heap[current_addr];
-        int block_size = (header >> 1) << 1;
-        if ((header & 1) == FREE_BLOCK && block_size >= size) {
-            if (block_size > size) {
-                // split the free block
-                int split_addr = current_addr + size + 1;
-                uint8_t split_header = ((block_size - size - 1) >> 1) << 1 | FREE_BLOCK;
-                heap[split_addr] = split_header;
-            }
-            // Mark allocated block
-            uint8_t header = (size >> 1) << 1 | ALLOCATED_BLOCK;
-            heap[current_addr] = header;
-            return current_addr + 1; // Return address ofpayload
+    // Find best fit free block
+    int best_fit_addr = find_free_block(size + 1); 
+    if (best_fit_addr != -1) {
+        uint8_t header = heap[best_fit_addr];
+        int block_size = header >> 1;
+        if (block_size > size + 1) {
+            // split the free block
+            int split_addr = best_fit_addr + size + 1;
+            heap[split_addr] = ((block_size - size - 1) << 1) | FREE_BLOCK;
         }
-        current_addr += block_size + 1;
+        // Mark allocated block
+        heap[best_fit_addr] = (size + 1) << 1 | ALLOCATED_BLOCK;
+        return best_fit_addr + 1;
     }
     return -1; // no free blocks
 }
@@ -150,6 +155,17 @@ void show_heap() {
         int block_size = (header >> 1) << 1;
         printf("%d-%d (%s)\n", current_addr, current_addr + block_size - 1, header & 1 ? "Allocated" : "Free");
         current_addr += block_size + 1;
+    }
+}
+
+void blocklist() {
+    printf("Blocklist:\n");
+    int current_addr = 0;
+    while (current_addr < HEAP_SIZE) {
+        uint8_t header = heap[current_addr];
+        int block_size = header >> 1;
+        printf("%d, %d, %s\n", current_addr + 1, block_size - 1, header & 1 ? "allocated" : "free");
+        current_addr += block_size;
     }
 }
 
