@@ -7,14 +7,8 @@
 #define ALLOCATED_BLOCK 1
 
 /*
-hi! thanks for working with me!! <3
 
-  things i still have left to do:
-    - malloc function needs to be fixed (best fit algorithm - compaction)
-    - blocklist function
-    - test cases
-
-  things i finished :) :
+  11/11/2023 - Zahradinee
     - realloc operation
     - free operation
     - writemem operation
@@ -28,6 +22,11 @@ hi! thanks for working with me!! <3
   - There seems to be a bug with my_realloc
     - When you malloc (malloc 10) then you realloc it (realloc 1 20), and then run blocklist, there's an infinite loop
   - The my_free function needs to coalesce with the next block, if the next block is free ("Requirements about allocation and freeing of memory" in the assignment 4 doc)
+
+  11/13/2023 - Zahradinee
+  - I modified the my_free function to include coalescing
+  - Added debug statements to the re_alloc function - I tried a lot of diff methods but no matter what it keeps getting stuck in an infinite loop whenever I run a 
+    realloc command and then blocklist so I'm not sure how to fix it :( 
 */
 
 // memory heap w/ header for initial free block
@@ -78,7 +77,8 @@ int my_realloc(int ptr, int new_size) {
         return -1; // invalid pointer/size
     }
     ptr--; // adjust for payload address
-    int current_size = ((heap[ptr] >> 1) << 1) - 1;
+    int current_size = ((heap[ptr] >> 1) << 1) + 1;
+    printf("DEBUG: ptr = %d, new_size = %d, current_size = %d\n", ptr, new_size, current_size); // DEBUG
     if (new_size == current_size) {
         return ptr + 1;
     } else if (new_size < current_size) {
@@ -87,25 +87,22 @@ int my_realloc(int ptr, int new_size) {
         int split_addr = ptr + new_size + 1;
         uint8_t split_header = ((current_size - new_size - 1) >> 1) << 1 | FREE_BLOCK;
         heap[split_addr] = split_header;
+        printf("DEBUG: Free excess memory. split_addr = %d, split_size = %d\n", split_addr, split_header >> 1); // DEBUG
         return ptr + 1;
     } else {
-        // check if there is enough adjacent free space to expand
-        int next_addr = ptr + current_size + 1;
-        uint8_t next_header = heap[next_addr];
-        int next_block_size = (next_header >> 1) << 1;
-        while ((next_header & 1) == FREE_BLOCK && next_block_size > 0) {
-            if (next_block_size >= new_size - current_size) {
-                heap[ptr] = ((new_size >> 1) << 1) | ALLOCATED_BLOCK;
-                int split_addr = ptr + new_size + 1;
-                uint8_t split_header = ((next_block_size - (new_size - current_size) - 1) >> 1) << 1 | FREE_BLOCK;
-                heap[split_addr] = split_header;
-                return ptr + 1;
+        int current_addr = 0;
+        while (current_addr < HEAP_SIZE) {
+            uint8_t header = heap[current_addr];
+            int block_size = (header >> 1) << 1;
+            if ((header & 1) == FREE_BLOCK && block_size >= new_size - current_size + 1) {
+                int split_addr = current_addr + new_size - current_size + 1;
+                int split_size = block_size - (new_size - current_size) - 1;
+                heap[current_addr] = ((new_size + current_size) << 1) | ALLOCATED_BLOCK;
+                heap[split_addr] = (split_size << 1) | FREE_BLOCK;
+                printf("DEBUG: Splitting. split_addr = %d, split_size = %d\n", split_addr, split_size); // DEBUG
+                return current_addr + 1;
             }
-            //move to  next free block
-            ptr = next_addr;
-            next_addr = ptr + next_block_size + 1;
-            next_header = heap[next_addr];
-            next_block_size = (next_header >> 1) << 1;
+            current_addr += block_size + 1;
         }
         int new_block = my_malloc(new_size);
         if (new_block == -1) {
@@ -115,19 +112,27 @@ int my_realloc(int ptr, int new_size) {
             heap[new_block + i] = heap[ptr + i];
         }
         heap[ptr] = (current_size << 1) | FREE_BLOCK;
-        return ptr + 1;
+        printf("DEBUG: Allocated new block. new_block = %d\n", new_block); // DEBUG
+        return new_block + 1;
     }
 }
 
-// free allocated memory
 void my_free(int ptr) {
     if (ptr < 1 || ptr > HEAP_SIZE) {
         return;
     }
-
     ptr--;
+    // current block = free
     if ((heap[ptr] & 1) == ALLOCATED_BLOCK) {
-        heap[ptr] &= ~1; // discussion 6 slides
+        heap[ptr] &= ~1;
+        // check header of the next block
+        int next_addr = ptr + ((heap[ptr] >> 1) << 1) + 1;
+        uint8_t next_header = heap[next_addr];
+        if ((next_header & 1) == FREE_BLOCK) {
+            // if next block is free coalesce the two blocks
+            int merged_size = ((heap[ptr] >> 1) << 1) + ((next_header >> 1) << 1) + 1;
+            heap[ptr] = merged_size << 1 | FREE_BLOCK;
+        }
     }
 }
 
