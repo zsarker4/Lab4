@@ -27,6 +27,10 @@
   - I modified the my_free function to include coalescing
   - Added debug statements to the re_alloc function - I tried a lot of diff methods but no matter what it keeps getting stuck in an infinite loop whenever I run a 
     realloc command and then blocklist so I'm not sure how to fix it :( 
+
+  11/15/2023 - Kevin
+  - I noticed a similar bug in the my_free function, where if you freed a block and then did blocklist, it would infinite loop, but I fixed it!!
+  - I haven't taken a look at the realloc function yet, but I will try to do it soon
 */
 
 // memory heap w/ header for initial free block
@@ -118,20 +122,24 @@ int my_realloc(int ptr, int new_size) {
 }
 
 void my_free(int ptr) {
-    if (ptr < 1 || ptr > HEAP_SIZE) {
+    if (ptr < 1 || ptr >= HEAP_SIZE) {
         return;
     }
     ptr--;
     // current block = free
     if ((heap[ptr] & 1) == ALLOCATED_BLOCK) {
         heap[ptr] &= ~1;
+        int current_block_size = heap[ptr] >> 1;
         // check header of the next block
-        int next_addr = ptr + ((heap[ptr] >> 1) << 1) + 1;
-        uint8_t next_header = heap[next_addr];
-        if ((next_header & 1) == FREE_BLOCK) {
-            // if next block is free coalesce the two blocks
-            int merged_size = ((heap[ptr] >> 1) << 1) + ((next_header >> 1) << 1) + 1;
-            heap[ptr] = merged_size << 1 | FREE_BLOCK;
+        int next_addr = ptr + current_block_size;
+        if (next_addr < HEAP_SIZE)
+        {
+            uint8_t next_header = heap[next_addr];
+            if ((next_header & 1) == FREE_BLOCK) {
+                // if next block is free coalesce the two blocks
+                int merged_size = current_block_size + (next_header >> 1);
+                heap[ptr] = (merged_size << 1) | FREE_BLOCK;
+            }
         }
     }
 }
