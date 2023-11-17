@@ -7,34 +7,8 @@
 #define ALLOCATED_BLOCK 1
 
 /*
-
-  11/11/2023 - Zahradinee
-    - realloc operation
-    - free operation
-    - writemem operation
-    - printmem operation
-    - quit
-
-  11/12/2023 - Kevin
-  - I modified the find_free_block and my_malloc functions to use the best fit algorithm
-  - I created the blocklist function
-  - The alloc seems to work now (malloc 2 outputs 18) and blocklist seems functional as well
-  - There seems to be a bug with my_realloc
-    - When you malloc (malloc 10) then you realloc it (realloc 1 20), and then run blocklist, there's an infinite loop
-  - The my_free function needs to coalesce with the next block, if the next block is free ("Requirements about allocation and freeing of memory" in the assignment 4 doc)
-
-  11/13/2023 - Zahradinee
-  - I modified the my_free function to include coalescing
-  - Added debug statements to the re_alloc function - I tried a lot of diff methods but no matter what it keeps getting stuck in an infinite loop whenever I run a 
-    realloc command and then blocklist so I'm not sure how to fix it :( 
-
-  11/15/2023 - Kevin
-  - I noticed a similar bug in the my_free function, where if you freed a block and then did blocklist, it would infinite loop, but I fixed it!!
-  - I haven't taken a look at the realloc function yet, but I will try to do it soon
-
-  11/16/2023 - Kevin
-  - I think I fixed the bugs that were in the my_realloc function. It seems to function as expected now, we still need to do some more testing to see if there are any more bugs.
-  - There was a very minor bug in find_free_block that I fixed (literally just added +1 when it was not necessary).
+Name:Zahradinee Sarker ID:24325057
+Name: ID: 
 */
 
 // memory heap w/ header for initial free block
@@ -86,7 +60,7 @@ int my_realloc(int ptr, int new_size) {
     }
     ptr--; // adjust for payload address
     int current_size = heap[ptr] >> 1;
-    printf("DEBUG: ptr = %d, new_size = %d, current_size = %d\n", ptr, new_size, current_size); // DEBUG
+    //printf("DEBUG: ptr = %d, new_size = %d, current_size = %d\n", ptr, new_size, current_size); // DEBUG
     if (new_size == current_size) {
         return ptr + 1;
     } else if (new_size < current_size) {
@@ -95,7 +69,7 @@ int my_realloc(int ptr, int new_size) {
         int split_addr = ptr + new_size + 1;
         uint8_t split_header = ((current_size - new_size - 1) << 1) | FREE_BLOCK;
         heap[split_addr] = split_header;
-        printf("DEBUG: Free excess memory. split_addr = %d, split_size = %d\n", split_addr, split_header >> 1); // DEBUG
+        //printf("DEBUG: Free excess memory. split_addr = %d, split_size = %d\n", split_addr, split_header >> 1); // DEBUG
         return ptr + 1;
     } else {
         int current_addr = ptr + current_size;
@@ -109,7 +83,7 @@ int my_realloc(int ptr, int new_size) {
                 if (split_size > 0) {
                     heap[split_addr] = (split_size << 1) | FREE_BLOCK;
                 }
-                printf("DEBUG: Splitting. split_addr = %d, split_size = %d\n", split_addr, split_size); // DEBUG
+                //printf("DEBUG: Splitting. split_addr = %d, split_size = %d\n", split_addr, split_size); // DEBUG
                 return ptr + 1;
             }
         }
@@ -121,7 +95,7 @@ int my_realloc(int ptr, int new_size) {
             heap[new_block + i] = heap[ptr + i];
         }
         heap[ptr] = (current_size << 1) | FREE_BLOCK;
-        printf("DEBUG: Allocated new block. new_block = %d\n", new_block); // DEBUG
+        //printf("DEBUG: Allocated new block. new_block = %d\n", new_block); // DEBUG
         return new_block;
     }
 }
@@ -157,7 +131,7 @@ void writemem(int ptr, char* data) {
 }
 
 void printmem(int ptr, int count) {
-    printf("Memory Content:\n");
+    //printf("Memory Content:\n");
     for (int i = 0; i < count; i++) {
         printf("%02X ", heap[ptr + i]);
     }
@@ -177,7 +151,7 @@ void show_heap() {
 }
 
 void blocklist() {
-    printf("Blocklist:\n");
+    // printf("Blocklist:\n");
     int current_addr = 0;
     while (current_addr < HEAP_SIZE) {
         uint8_t header = heap[current_addr];
