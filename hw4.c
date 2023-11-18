@@ -1,3 +1,8 @@
+/*
+Name:Zahradinee Sarker ID:24325057
+Name:Kevin Tran ID:72244158 
+*/
+
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -5,11 +10,6 @@
 #define HEAP_SIZE 127
 #define FREE_BLOCK 0
 #define ALLOCATED_BLOCK 1
-
-/*
-Name:Zahradinee Sarker ID:24325057
-Name: ID: 
-*/
 
 // memory heap w/ header for initial free block
 uint8_t heap[HEAP_SIZE] = {HEAP_SIZE << 1};
